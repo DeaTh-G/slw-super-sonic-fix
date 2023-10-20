@@ -1,0 +1,9 @@
+[submodule "Depends/LWAPI"]
+	path = Depends/LWAPI
+	url = https://github.com/hedge-dev/LWAPI.git
+[submodule "Depends/HE1ML"]
+	path = Depends/HE1ML
+	url = https://github.com/hedge-dev/HE1ML.git
+[submodule "Depends/HedgeLib"]
+	path = Depends/HedgeLib
+	url = https://github.com/Radfordhound/HedgeLib.git
