@@ -1,50 +1,50 @@
 #include "pch.h"
 #include "..\..\Depends\HE1ML\Source\ModLoader.h"
+#include "..\..\Depends\HedgeLib\HedgeLib\include\hedgelib\models\hl_hh_model.h"
 
-HOOK(void, __fastcall, ResModelReplaceHook, ASLR(0x00BFDC10), hh::gfx::res::ResModel* in_pThis, void* edx, const char* in_pName, uint* in_pUnk1, csl::fnd::IAllocator* in_pAllocator)
+HOOK(void, __fastcall, ResModelReplaceHook, ASLR(0x00BFDC10), char** in_pThis, void* edx, const char* in_pName, uint* in_pUnk1, csl::fnd::IAllocator* in_pAllocator)
 {
-	originalResModelReplaceHook(in_pThis, edx, in_pName, in_pUnk1, in_pAllocator);
-}
-
-/*HOOK(void, __fastcall, InitializeSSHook, ASLR(0x008F88E0), app::Player::SuperSonicInfo* in_pThis, void* edx, app::GameDocument& in_rDocument)
-{
-	originalInitializeSSHook(in_pThis, edx, in_rDocument);
-
-	auto mainMeshGroup = in_pThis->Model.GetResMeshGroup(0);
-	auto mesh = mainMeshGroup.GetResMesh(0);
-
-	ushort* pFaces{};
-	void* pVertices{};
-	auto* pIndexBuffer = mesh->m_pPrimitive->m_pIndexBuffer;
-	auto* pVertexStream = mesh->m_pPrimitive->m_pVertexBuffers->m_pStream;
-
-	pIndexBuffer->m_pIndexBuffer->Lock(mesh->m_pPrimitive->m_StartIndex, pIndexBuffer->m_IndexSize * pIndexBuffer->m_IndexCount, (void**)&pFaces, 0);
-	pVertexStream->m_pVertexBuffer->Lock(mesh->m_pPrimitive->m_pVertexBuffers->m_Offset, pVertexStream->m_Stride * pVertexStream->m_Unk1, (void**)&pVertices, D3DLOCK_READONLY);
-
-	for (size_t i = 0; i < pIndexBuffer->m_IndexCount; i++)
+	if (!strcmp(in_pName, "chr_supersonic"))
 	{
-		// Skip over any degenerate tris found.
-		if (pFaces[i] == USHRT_MAX)
-			continue;
+		// Calculate and allocate the necessary size required to create a copy of the model data that is currently being loaded.
+		hl::u32 fileSize = _byteswap_ulong(reinterpret_cast<hh::db::CSampleChunkResource2*>(*in_pThis)->m_Size) & ~csl::ut::SIGN_BIT;
+		auto* pEditedData = malloc(fileSize);
+		memcpy(pEditedData, *in_pThis, fileSize);
 
-		// Replace the tris that are connected to Teeth_Low_L or Teeth_Up_L with degenerate tris as to no longer have them displayed from this mesh
-		// TODO: Move these into the mesh group Sonic_Mouth_L once that mesh group has been created.
-		if (((char*)pVertices)[pVertexStream->m_Stride * pFaces[i] + 99] == 9 || ((char*)pVertices)[pVertexStream->m_Stride * pFaces[i] + 99] == 10)
+		// Resolve the pointers on the copied data to be able to use the pointers in the file as memory addresses.
+		reinterpret_cast<hh::db::CSampleChunkResource2*>(pEditedData)->ResolvePointer();
+		auto* pEditedModel = reinterpret_cast<hl::hh::mirage::raw_skeletal_model_v5*>((char*)pEditedData + 0x30);
+		
+		auto* pMesh = pEditedModel->meshGroups[0]->opaq[0].get();
+		for (size_t i = 0; i < _byteswap_ulong(pMesh->faces.count); i++)
 		{
-			pFaces[i] = USHRT_MAX;
+			// Skip over any degenerate tris found.
+			if (pMesh->faces[i] == USHRT_MAX)
+				continue;
+		
+			// Replace the tris that are connected to Teeth_Low_L or Teeth_Up_L with degenerate tris as to no longer have them displayed from this mesh
+			// TODO: Move these into the mesh group Sonic_Mouth_L once that mesh group has been created.
+			size_t offset = _byteswap_ulong(pMesh->vertexSize) * _byteswap_ushort(pMesh->faces[i]) + 96;
+			if (((char*)pMesh->vertices.get())[offset] == 9 || ((char*)pMesh->vertices.get())[offset] == 10)
+			{
+				pMesh->faces[i] = USHRT_MAX;
+			}
 		}
+
+		// Store the mouth mesh that needs to go into the mesh group Sonic_Mouth_L for later usage.
+		auto* pMouthMesh = pEditedModel->meshGroups[0]->opaq[3].get();
+
+		// Adjust the array back by one since we removed an element in the middle of it.
+		memmove(&pEditedModel->meshGroups[0]->opaq[3], &pEditedModel->meshGroups[0]->opaq[4], 32);
+		pEditedModel->meshGroups[0]->opaq.count -=  _byteswap_ulong(1);
+
+		// Unresolve the pointers on the copied data before sending it back to the game so that the game process them normally.
+		reinterpret_cast<hh::db::CSampleChunkResource2*>(pEditedData)->UnresolvePointer();
+		*in_pThis = (char*)pEditedData;
 	}
 
-	pVertexStream->m_pVertexBuffer->Unlock();
-	pIndexBuffer->m_pIndexBuffer->Unlock();
-
-	// Store the mouth mesh that needs to go into the mesh group Sonic_Mouth_L for later usage.
-	auto mouthMesh = mainMeshGroup.GetResMesh(3);
-
-	// Adjust the array back by one since we removed an element in the middle of it.
-	memmove(&mainMeshGroup->pMeshes[3], &mainMeshGroup->pMeshes[4], sizeof(hh::gfx::res::ResMeshData) * 8);
-	mainMeshGroup->MeshCount -= 1;
-}*/
+	originalResModelReplaceHook(in_pThis, edx, in_pName, in_pUnk1, in_pAllocator);
+}
 
 extern "C"
 {
