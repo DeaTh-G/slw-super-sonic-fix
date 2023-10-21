@@ -230,6 +230,7 @@ extern "C"
 {
 	void _declspec(dllexport) __cdecl Init(ModInfo_t* in_pModInfo)
 	{
+		buffer = (char*)malloc(2097152);
 		INSTALL_HOOK(ResModelReplaceHook);
 	}
 }
