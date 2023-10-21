@@ -4,14 +4,14 @@
 
 #pragma warning(disable: 4996)
 
-char buffer[2097152];
+volatile char* buffer;
 size_t pos = 0;
 
 void* AllocStatic(size_t size, int alignment)
 {
 	auto p = csl::ut::RoundUp(pos, alignment);
 	pos += size;
-	return &buffer[p];
+	return (void*)&buffer[p];
 }
 
 void ResetStaticBuffer()
