@@ -74,7 +74,7 @@ HOOK(void, __fastcall, ResModelReplaceHook, ASLR(0x00BFDC10), char** in_pThis, v
 		return originalResModelReplaceHook(in_pThis, edx, in_pName, in_pUnk1, in_pAllocator);
 
 	// Calculate and allocate the necessary size required to create a copy of the model data that is currently being loaded.
-	hl::u32 fileSize = _byteswap_ulong(reinterpret_cast<hh::db::CSampleChunkResource2*>(*in_pThis)->m_Size);
+	hl::u32 fileSize = _byteswap_ulong(reinterpret_cast<hh::db::CSampleChunkResource2*>(*in_pThis)->Size);
 	if ((fileSize & csl::ut::SIGN_BIT) == 0)
 		return originalResModelReplaceHook(in_pThis, edx, in_pName, in_pUnk1, in_pAllocator);
 
@@ -218,7 +218,7 @@ HOOK(void, __fastcall, ResModelReplaceHook, ASLR(0x00BFDC10), char** in_pThis, v
 	}
 
 	// The offset count is set to 0 so that the game doesn't try to resolve the offsets again when it later tries to process the model data.
-	reinterpret_cast<hh::db::CSampleChunkResource2*>(pEditedData)->m_OffsetCount = 0;
+	reinterpret_cast<hh::db::CSampleChunkResource2*>(pEditedData)->OffsetCount = 0;
 
 	// Replace the original model data with the edited model data.
 	*in_pThis = (char*)pEditedData;
